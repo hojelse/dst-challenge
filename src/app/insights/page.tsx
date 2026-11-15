@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
+import { connection } from "next/server";
 import { BarChart } from "@/components/insights/bar-chart";
 import { countryName } from "@/lib/countries";
 import { db } from "@/server/db";
@@ -39,6 +40,8 @@ export default function InsightsPage() {
 }
 
 async function Insights() {
+  // Query at request time, not while the static shell is built.
+  await connection();
   const [authors, countries, citations] = await Promise.all([
     topDanishAuthors(db),
     authorsByCountry(db),
