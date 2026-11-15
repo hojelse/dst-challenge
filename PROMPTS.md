@@ -101,6 +101,6 @@ Rounds 1–5 of the prototype live on branch `prototype/search-ui`, which is kep
 
 **Found along the way:** the generated name of the composite foreign key from `affiliations` to `authorships` exceeded Postgres's 63-character limit and was truncated, so every `db:push` saw a change. It is now named by hand. `LayoutProps<"/">` broke `tsc` on a fresh clone because Next generates that type only at build time.
 
-**Decisions for me to review:** nullability beyond what the issue lists (`doi`, `language`, `oa_url`, `pmid`, `orcid`, `ror` and institution `type` nullable; `title` and `publication_date` NOT NULL), foreign keys with cascade from `publications`, and pnpm 10 pinned through `packageManager` (run `corepack enable`).
+**Decisions for me to review:** nullability beyond what the issue lists (`doi`, `language`, `oa_url`, `pmid`, `orcid`, `ror` and institution `type` nullable; `publication_date` NOT NULL), foreign keys with cascade from `publications`, and pnpm 10 pinned through `packageManager` (run `corepack enable`).
 
-**Changed by hand:** nothing yet.
+**Changed after review (PR #11):** `title` is now nullable. #4 now asks the harvester to check whether OpenAlex Authorships can lack an Author ID.

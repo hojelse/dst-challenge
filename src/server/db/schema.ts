@@ -20,7 +20,7 @@ import {
 export const publications = pgTable("publications", {
   id: text("id").primaryKey(),
   doi: text("doi"),
-  title: text("title").notNull(),
+  title: text("title"),
   abstract: text("abstract"),
   publicationDate: date("publication_date").notNull(),
   publicationYear: integer("publication_year").notNull(),
