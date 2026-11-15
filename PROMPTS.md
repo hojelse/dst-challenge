@@ -104,3 +104,21 @@ Rounds 1–5 of the prototype live on branch `prototype/search-ui`, which is kep
 **Decisions for me to review:** nullability beyond what the issue lists (`doi`, `language`, `oa_url`, `pmid`, `orcid`, `ror` and institution `type` nullable; `publication_date` NOT NULL), foreign keys with cascade from `publications`, and pnpm 10 pinned through `packageManager` (run `corepack enable`).
 
 **Changed after review (PR #11):** `title` is now nullable. #4 now asks the harvester to check whether OpenAlex Authorships can lack an Author ID. Before merging I found the foreign key re-created on every push; I chose to accept it and correct the comment and PR text rather than switch to migrations or drop the two-column key.
+
+## 8. Slice 2: harvest and load (#4) (Sun 15 Nov 2026)
+
+**Prompt:** `/triage`, then "let's triage #4", "grill me on those", and after the brief: "start the test-writer agent", then "start the implementer agent, and finish this pr autonomously". Claude Code with Claude Opus 5.5 for this session.
+
+**Delegated:** triage of the spec issues, a grilling round on #4, an agent brief, then two separate agents as in slice 1. The test-writer fetched five real works one at a time as the fixture and committed 52 tests (mapper unit tests, load integration tests) before any implementation. The implementer added the OpenAlex client, the `data/raw/` cache, the mapper, the loader and `pnpm harvest`/`pnpm load`, and was not allowed to edit the tests.
+
+**Facts the agent checked instead of guessing:**
+- The issue titles #3–#10 were shifted one place against their bodies (#3 had an empty title), and the `Blocked by:` lines with them. GitHub's native dependencies were right. The agent retitled the issues and copied the dependencies into the text.
+- 174 of the first 200 records' Authorships had no OpenAlex author ID, and skipping them, as the issue said, left 10 of those 200 Publications with no Danish Affiliation, failing the issue's own acceptance criterion.
+- The list endpoint caps `authorships` at 100 without setting `is_authors_truncated` (W4406617993: 100 in the list, 241 alone).
+- Found by the implementer: OpenAlex refuses cursor paging past page 1 without an API key, so the keyless path pages by number.
+
+**My decisions:** keep unidentified Authorships with a null `author_id`, shown by their printed name and counted for Institution and Country Filters but never as Authors (`GLOSSARY.md`, ADR-0004); refetch every work with exactly 100 Authorships from the single-work endpoint; an Institution has at most one Country; the test-writer builds the fixture; the harvester works with or without a key. Comments on #6 and #7 carry the Authorship decision into those slices.
+
+**How it was checked:** the tests were confirmed failing only on the missing modules before implementation, and the test files are unchanged since their commit (`bf66997`). I reran `pnpm test` (49 passed), `pnpm test:integration` (16 passed), `pnpm lint` and `tsc --noEmit`, and checked the acceptance criteria with SQL against the real harvest: 1,000 Publications, 0 without a Danish Affiliation, 0 with exactly 100 Authorships, identical counts after a second `pnpm load`, no requests from a second `pnpm harvest`, and the key in neither `data/raw/` nor git.
+
+**Changed by hand:** ADR-0004's share of affected Publications, corrected from the 200-record sample to the full harvest (about a quarter, not a third).
