@@ -27,6 +27,21 @@ To run the whole stack in Docker instead, including the app:
 docker compose up --build
 ```
 
+## Data
+
+```bash
+pnpm harvest            # cache the top 1,000 works from OpenAlex in data/raw/
+pnpm load               # load the cache into Postgres
+```
+
+`pnpm harvest` fetches the challenge query in 5 pages of 200 and refetches any
+work whose list entry shows exactly 100 Authorships (the list endpoint's cap)
+from the single-work endpoint. Cached files are skipped, so a second run makes
+no requests; pass `--force` to fetch everything again. `OPENALEX_API_KEY` is
+optional: without it, pages are fetched by number, because OpenAlex allows
+cursor paging past the first page only with a key. `pnpm load` is idempotent:
+run it again and row counts stay the same.
+
 ## Configuration
 
 | Variable            | Purpose                                    |

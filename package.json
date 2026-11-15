@@ -8,6 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "db:push": "drizzle-kit push",
+    "harvest": "tsx scripts/harvest.ts",
+    "load": "tsx scripts/load.ts",
     "test": "vitest run --project unit",
     "test:integration": "vitest run --project integration"
   },
@@ -35,6 +37,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.4.6",
     "tailwindcss": "4.3.3",
+    "tsx": "^4.23.15",
     "typescript": "^5",
     "vitest": "^5.1.0"
   },
