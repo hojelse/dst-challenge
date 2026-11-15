@@ -1,0 +1,3 @@
+# Postgres is the system of record; Elasticsearch is a rebuildable derived index
+
+The challenge requires harvested publications to be stored in a database (Task 1) and separately indexed for search (Task 2, Option A). We keep the normalised data and the raw OpenAlex JSON in Postgres, and treat the Elasticsearch index as a projection that can be dropped and rebuilt from Postgres at any time. The list page and facets read Elasticsearch; the detail page and the analytics read Postgres. Using only one store would have been simpler for a thousand records, but the brief mandates both, and the split gives each a real runtime role instead of leaving one vestigial.
