@@ -43,8 +43,8 @@ publications reach it and how many it leaves, like the rows of a query plan:
 All publications            1000
 Search "climate"            1000 → 925
 Country is any of Germany    925 → 194
-Open access is none of gold  194 → 143
-Results                      143
+Open access is none of gold  194 → 133
+Results                      133
 ```
 
 A filter can be negated ("is none of"), switched off without losing its
