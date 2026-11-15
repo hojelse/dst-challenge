@@ -1,0 +1,3 @@
+# Use OpenAlex Topics, not Concepts, for subject classification
+
+The challenge lists "Concepts (topics)" as one metadata field. OpenAlex returns both: `concepts` is the legacy taxonomy, frozen since 2024 and noisy (around fifteen weighted entries per work), while `topics` is the maintained taxonomy (about three per work, with a subfield/field/domain hierarchy). We expose Topics in the UI, the API and the search facets and call them "Topic" throughout. The raw concepts stay in the stored JSON but are not surfaced. Showing concepts would match the brief's wording more literally, but topics are what OpenAlex maintains and they make far better filter facets.
