@@ -90,3 +90,17 @@ Rounds 1–5 of the prototype live on branch `prototype/search-ui`, which is kep
 **Flagged for my decision:** the Author Filter picks Author IDs (#6) instead of the prototype's "name contains".
 
 **Next, by me:** edit the issues and flip each to `ready-for-agent`. Merge PR #2 before slice 1 starts.
+
+## 7. Slice 1: scaffold, Compose and schema (#3) (Sun 15 Nov 2026)
+
+**Prompt:** "Work on issue #3 ([1/8] Scaffold app, Docker Compose and database schema)", then "open a PR when it's done".
+
+**Delegated:** two separate agents. A test-writer agent wrote a Vitest smoke test (`src/smoke.test.ts`) and a schema integration test (`src/server/db/schema.integration.test.ts`) that checks the seven tables, their primary keys, `raw` as jsonb and a nullable `abstract`. These were committed on their own before any implementation. An implementer agent then cherry-picked the scaffold commit `aace991` (without the prototype route), renamed the app, fixed the self-referencing `--font-sans`, and added the Drizzle schema, Docker Compose (Postgres 17, Elasticsearch 9.2.1, standalone `web` image) and Vitest unit/integration projects. It was not allowed to edit the tests.
+
+**How it was checked:** the implementer ran every acceptance command, including `docker compose up --build web` and a fresh clone with `pnpm install --frozen-lockfile`, and checked in headless Chrome that the computed font is Geist. I then confirmed independently that the test files were unchanged since their commit, and reran `pnpm test` (3 passed), `pnpm test:integration` (10 passed), `pnpm lint` and `pnpm tsc --noEmit`.
+
+**Found along the way:** the generated name of the composite foreign key from `affiliations` to `authorships` exceeded Postgres's 63-character limit and was truncated, so every `db:push` saw a change. It is now named by hand. `LayoutProps<"/">` broke `tsc` on a fresh clone because Next generates that type only at build time.
+
+**Decisions for me to review:** nullability beyond what the issue lists (`doi`, `language`, `oa_url`, `pmid`, `orcid`, `ror` and institution `type` nullable; `title` and `publication_date` NOT NULL), foreign keys with cascade from `publications`, and pnpm 10 pinned through `packageManager` (run `corepack enable`).
+
+**Changed by hand:** nothing yet.
