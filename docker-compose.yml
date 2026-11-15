@@ -36,19 +36,35 @@ services:
       timeout: 10s
       retries: 30
 
-  web:
-    build: .
+  # Runs once and exits: creates the tables, harvests from OpenAlex (or reuses
+  # the cache in ./data/raw), loads Postgres and builds the index. Every step
+  # is idempotent, so it is safe on every `docker compose up`.
+  seed:
+    build:
+      context: .
+      target: tools
     environment:
       DATABASE_URL: postgres://thegreendiamond:thegreendiamond@postgres:5432/thegreendiamond
       ELASTICSEARCH_URL: http://elasticsearch:9200
       OPENALEX_API_KEY: ${OPENALEX_API_KEY:-}
-    ports:
-      - "3000:3000"
+    volumes:
+      - ./data:/app/data
     depends_on:
       postgres:
         condition: service_healthy
       elasticsearch:
         condition: service_healthy
+
+  web:
+    build: .
+    environment:
+      DATABASE_URL: postgres://thegreendiamond:thegreendiamond@postgres:5432/thegreendiamond
+      ELASTICSEARCH_URL: http://elasticsearch:9200
+    ports:
+      - "3000:3000"
+    depends_on:
+      seed:
+        condition: service_completed_successfully
 
 volumes:
   postgres-data:

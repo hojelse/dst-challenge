@@ -9,11 +9,20 @@ FROM base AS deps
 COPY package.json pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile
 
+# The data scripts (db:push, harvest, load, index), with dev dependencies.
+# Used by the one-shot `seed` service in docker-compose.yml.
+FROM base AS tools
+COPY --from=deps /app/node_modules ./node_modules
+COPY . .
+CMD ["sh", "-c", "pnpm db:push --force && pnpm harvest && pnpm load && pnpm run index"]
+
 # Build the standalone Next.js server.
 FROM base AS build
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-RUN pnpm build
+# The build imports the database module but never queries it; the real
+# URLs are set at run time.
+RUN DATABASE_URL=postgres://build:build@localhost/build pnpm build
 
 # Run only the standalone output: no pnpm, no dev dependencies.
 FROM node:24-alpine AS runner
