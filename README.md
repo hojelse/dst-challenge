@@ -5,6 +5,24 @@ published in 2025, harvested from [OpenAlex](https://openalex.org) and made
 searchable. A solution to the "OpenAlex Data" programming challenge
 (`Challenge.pdf`).
 
+## Deliverables
+
+The deliverables listed in `Challenge.pdf`:
+
+1. **Code repository:** <https://github.com/hojelse/dst-challenge>
+2. **README:** this file. It covers the topics of "3. Documentation":
+   [architecture](#architecture), [how to run](#quick-start)
+   ([for development](#running-it-for-development)),
+   [deployment](#deployment), and
+   [assumptions, limitations](#assumptions-and-limitations) and [ideas](#ideas).
+3. **AI prompts:** [`PROMPTS.md`](PROMPTS.md)
+4. **Public deployment (optional):** none. The app runs locally with
+   `docker compose up --build`; see [Deployment](#deployment) for how it
+   would be hosted.
+
+The optional Task 4 analyses are on the `/insights` page, with their SQL in
+`src/server/insights/queries.ts`.
+
 | Where to look            | For                                                     |
 | ------------------------ | ------------------------------------------------------- |
 | This file                | Architecture, how to run, how to deploy, limitations    |
