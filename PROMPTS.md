@@ -34,3 +34,7 @@ Tooling: Claude Code (Claude Fable 5.1) in the terminal, with the `mattpocock-sk
 - Detail page from Postgres, list from Elasticsearch. Classic pagination. Insights page last.
 - Agent asked to pick the API key variable name: `OPENALEX_API_KEY`.
 - ADR-0001 (Postgres as system of record, Elasticsearch derived) and ADR-0002 (Topics over Concepts) written.
+
+**My decisions, round 3:** facet-count semantics accepted but must be explicit in the UI; detail page as proposed for now; edge states and API validation as proposed; accessibility baseline plus logical tab order; OpenAlex short IDs everywhere in the app; harvest, test and runtime setup as proposed; issues as the approval gate; separate test-writer and implementer agents. Main is protected by a ruleset, so every change goes through a PR. Facet controls, explicit OR/AND, page layout and result card go to a UI prototype before deciding.
+
+**Delegated next:** `/prototype` of the search page: three structurally different variants over 200 real OpenAlex records. The agent scaffolded the Next 16 + Tailwind 4 + shadcn app to host it, verified the Base UI and Next 16 APIs from `node_modules` instead of memory, and wrote the plan in `src/app/prototype/search/README.md`. Variants not yet built.
