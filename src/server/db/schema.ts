@@ -56,7 +56,10 @@ export const institutions = pgTable("institutions", {
   type: text("type"),
 });
 
-/** An Authorship: one Author's place in one Publication's author list. */
+/**
+ * An Authorship: one entry in a Publication's author list. It names an Author
+ * when OpenAlex identified one; otherwise it is an unidentified Authorship.
+ */
 export const authorships = pgTable(
   "authorships",
   {
@@ -65,9 +68,8 @@ export const authorships = pgTable(
       .references(() => publications.id, { onDelete: "cascade" }),
     /** 0-based order in the Publication's author list. */
     position: integer("position").notNull(),
-    authorId: text("author_id")
-      .notNull()
-      .references(() => authors.id),
+    /** Null for an unidentified Authorship (ADR-0004). */
+    authorId: text("author_id").references(() => authors.id),
     /** OpenAlex's "first", "middle" or "last". */
     authorPosition: text("author_position").notNull(),
     isCorresponding: boolean("is_corresponding").notNull().default(false),
