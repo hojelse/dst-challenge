@@ -35,15 +35,18 @@ A person who wrote Publications, as the disambiguated OpenAlex author entity ide
 _Avoid_: Researcher, contributor, raw author name
 
 **Authorship**:
-The link between one Publication and one Author: their position in the author list, whether they are a corresponding author, and their Affiliations on that Publication.
+One entry in a Publication's author list: its position, whether it is a corresponding author, and its Affiliations on that Publication. It names an Author when OpenAlex identified one; otherwise it is an unidentified Authorship, known only by the name printed on the Publication.
 _Avoid_: Author entry, byline
+
+**Unidentified Authorship**:
+An Authorship whose person OpenAlex did not resolve to an Author. Its Affiliations still count for the Publication's Institutions and Countries, but it is not an Author and never counts as a Danish Author.
 
 **Affiliation**:
 An Institution that an Author listed on one specific Publication. Belongs to an Authorship; the same Author may have different Affiliations on different Publications.
 _Avoid_: Membership, employer
 
 **Institution**:
-A research organisation as an OpenAlex institution entity (university, hospital, company, agency), with exactly one Country.
+A research organisation as an OpenAlex institution entity (university, hospital, company, agency), located in at most one Country; OpenAlex does not always know it.
 _Avoid_: Organisation, university, affiliation (that is the link, not the place)
 
 **Country**:

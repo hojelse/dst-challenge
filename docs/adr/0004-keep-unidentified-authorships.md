@@ -1,0 +1,3 @@
+# Keep Authorships that OpenAlex did not resolve to an Author
+
+About a quarter of harvested Publications list at least one person OpenAlex did not resolve to an author entity (`author.id` is null), and for about 5% of all Publications such a person holds the only Danish Affiliation, the very link the challenge query selected on. We keep these as unidentified Authorships with a null author, shown by the name printed on the Publication, so their Affiliations still count for Institution and Country Filters; they are not Authors, so the Author Filter and Danish Author counts leave them out. Skipping them would have kept every Authorship pointing at an Author, but would silently drop Publications' Danish link and undercount Institutions.
