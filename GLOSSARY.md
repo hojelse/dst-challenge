@@ -14,6 +14,20 @@ _Avoid_: Work, paper, article, record
 A subject area OpenAlex assigns to a Publication from its current topic taxonomy, nested in a subfield, field and domain. A Publication has a few Topics, one of them primary.
 _Avoid_: Concept (OpenAlex's deprecated taxonomy), keyword, subject, tag
 
+### Finding publications
+
+**Search**:
+The free-text query a user types to find Publications by title, abstract, Author, Institution, Country or Topic. It is always applied first, before any Filter.
+_Avoid_: Query, text filter, keyword search
+
+**Filter**:
+A condition on one attribute of a Publication (Topic, Country, Institution, Author or Open access status) that keeps Publications matching any of its chosen values, or none of them when negated. Filters apply in the order the user arranges them and can be switched off without being removed.
+_Avoid_: Facet, step, clause, refinement
+
+**Open access status**:
+OpenAlex's classification of how freely a Publication can be read: gold, green, hybrid, diamond, bronze or closed.
+_Avoid_: OA, licence, availability
+
 ### People and places
 
 **Author**:
