@@ -51,6 +51,7 @@ import {
 } from "./pipeline";
 import { ResultsTable } from "./results-table";
 import { StagedFacetPicker } from "./staged-picker";
+import type { OperatorStyle } from "./filter-parts";
 import { localSort } from "./variants-round2";
 
 export type FilterVariantProps = {
@@ -71,7 +72,7 @@ export type FilterVariantProps = {
 const isFacet = (key: StepKey): key is FacetKey => (FACET_KEYS as string[]).includes(key);
 
 /** What a row renderer gets. */
-type RowProps = {
+export type RowProps = {
   step: PipelineStep;
   labels: string[];
   handle: ReactNode;
@@ -193,7 +194,9 @@ function AddFilterMenu({ pipeline, onPick }: { pipeline: Pipeline; onPick: (key:
   );
 }
 
-function FilterPanel({ props, Row, gap = "gap-1" }: { props: FilterVariantProps; Row: (p: RowProps) => ReactNode; gap?: string }) {
+type PanelOpts = { props: FilterVariantProps; Row: (p: RowProps) => ReactNode; gap?: string; operatorStyle?: OperatorStyle };
+
+function FilterPanel({ props, Row, gap = "gap-1", operatorStyle }: PanelOpts) {
   const { pipeline, filters, order } = props;
   const [picker, setPicker] = useState<FacetKey | null>(null);
   const [text, setText] = useState<"q" | "author" | null>(null);
@@ -303,6 +306,7 @@ function FilterPanel({ props, Row, gap = "gap-1" }: { props: FilterVariantProps;
           key={picker}
           open
           negatable
+          operatorStyle={operatorStyle}
           negated={pipeline.steps.find((s) => s.key === picker)?.negated ?? false}
           onOpenChange={(o) => !o && setPicker(null)}
           facet={picker}
@@ -316,7 +320,7 @@ function FilterPanel({ props, Row, gap = "gap-1" }: { props: FilterVariantProps;
   );
 }
 
-function Layout({ props, Row, gap }: { props: FilterVariantProps; Row: (p: RowProps) => ReactNode; gap?: string }) {
+export function Layout({ props, Row, gap, operatorStyle }: PanelOpts) {
   const { pipeline, filters } = props;
   const sorted = useMemo(() => localSort(pipeline.final, filters.sort, pipeline.all), [pipeline, filters.sort]);
   const pageCount = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
@@ -325,7 +329,7 @@ function Layout({ props, Row, gap }: { props: FilterVariantProps; Row: (p: RowPr
   return (
     <div className="grid gap-4 lg:grid-cols-[380px_1fr]">
       <aside className="lg:sticky lg:top-4 lg:self-start" aria-label="Filters">
-        <FilterPanel props={props} Row={Row} gap={gap} />
+        <FilterPanel props={props} Row={Row} gap={gap} operatorStyle={operatorStyle} />
       </aside>
       <section className="min-w-0 space-y-3">
         <ResultsTable

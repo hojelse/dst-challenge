@@ -58,3 +58,13 @@ Tooling: Claude Code (Claude Fable 5.1) in the terminal, with the `mattpocock-sk
 **How it was checked:** `tsc`, ESLint and a 29-assertion Playwright run against the dev server, plus screenshots with twelve negated topics. The screenshots exposed a logic error in variant H's labels: NOT on each chip under an OR bracket reads as the wrong boolean. The agent fixed the labels.
 
 **Changed by hand:** nothing yet.
+
+## 4. Search UI prototype, round 4 (Sun 15 Nov 2026)
+
+**Prompt (summarised):** Add filter should list all options, not only those remaining after current filters. Keep from G: eye and delete side by side, the OR-joined values as the edit target, red when negated. But the operator must look clickable. From H: the "200 → 142" count, but not the OR bracket. From I: the eye icon. The modal must match the filter row in every variant.
+
+**Delegated:** one converged row in three operator styles (segmented, dropdown, toggle), with operator and value list pulled into shared components used by both row and modal, and the picker listing every value.
+
+**How it was checked:** `tsc`, ESLint, and a 23-assertion Playwright run, including that the modal's operator state, colour and "nor" joiner match the row. The modal looked see-through in a screenshot. A follow-up check showed this was the fade-in animation: computed opacity is 1 after it settles.
+
+**Changed by hand:** nothing yet.

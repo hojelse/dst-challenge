@@ -41,6 +41,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import type { FacetKey, Publication } from "./engine";
+import { OperatorControl, ValueList, type OperatorStyle } from "./filter-parts";
 import { previewKeep, STEP_HINT, STEP_LABEL, type StepOption } from "./pipeline";
 
 const features = tableFeatures({
@@ -68,6 +69,8 @@ type PickerProps = {
   /** Round 3: offer "is any of / is none of" inside the picker (staged with the picks). */
   negatable?: boolean;
   negated?: boolean;
+  /** Round 4: render the operator and the picked values exactly like the filter row does. */
+  operatorStyle?: OperatorStyle;
 };
 
 type Draft = {
@@ -169,7 +172,16 @@ function PickerTitle({
   negatable,
   draftNeg,
   setDraftNeg,
+  operatorStyle,
 }: PickerProps & Pick<Draft, "draftNeg" | "setDraftNeg">) {
+  if (operatorStyle) {
+    return (
+      <span className="inline-flex flex-wrap items-center gap-2">
+        {STEP_LABEL[facet]}
+        <OperatorControl style={operatorStyle} facet negated={draftNeg} onChange={setDraftNeg} label={STEP_LABEL[facet]} />
+      </span>
+    );
+  }
   if (!negatable) return <>{STEP_LABEL[facet]} is any of…</>;
   return (
     <span className="inline-flex flex-wrap items-center gap-2">
@@ -221,6 +233,7 @@ function PickerBody({
   draft,
   setDraft,
   draftNeg = false,
+  operatorStyle,
 }: PickerProps & Pick<Draft, "draft" | "setDraft"> & Partial<Draft>) {
   const [showAllChips, setShowAllChips] = useState(false);
   const toggle = (id: string) =>
@@ -251,6 +264,33 @@ function PickerBody({
 
   return (
     <>
+      {operatorStyle ? (
+        <div className="flex min-h-7 items-start gap-2 text-sm">
+          <div className="min-w-0 flex-1">
+            {draft.length === 0 ? (
+              <span className="text-muted-foreground">Nothing picked: this filter lets everything through.</span>
+            ) : (
+              <ValueList
+                labels={draft.map((id) => labelOf.get(id) ?? id)}
+                negated={draftNeg}
+                limit={showAllChips ? Infinity : CHIP_LIMIT}
+                onRemove={(i) => toggle(draft[i]!)}
+                moreLabel={(rest) => `${draftNeg ? "nor" : "or"} ${rest} more`}
+              />
+            )}
+            {draft.length > CHIP_LIMIT ? (
+              <Button variant="link" size="xs" className="h-auto px-1" onClick={() => setShowAllChips((v) => !v)}>
+                {showAllChips ? "Show fewer" : "Show all"}
+              </Button>
+            ) : null}
+          </div>
+          {draft.length > 1 ? (
+            <Button variant="ghost" size="xs" onClick={() => setDraft([])}>
+              Clear picks
+            </Button>
+          ) : null}
+        </div>
+      ) : (
       <div className="flex min-h-7 flex-wrap items-center gap-1.5 text-sm">
         {draft.length === 0 ? (
           <span className="text-muted-foreground">Nothing picked: this filter lets everything through.</span>
@@ -283,6 +323,7 @@ function PickerBody({
           </Button>
         ) : null}
       </div>
+      )}
 
       <Input
         autoFocus

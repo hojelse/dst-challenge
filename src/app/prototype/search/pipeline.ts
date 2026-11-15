@@ -190,11 +190,14 @@ function count(records: Publication[], key: FacetKey): Map<string, { label: stri
   return map;
 }
 
-/** Every value of `key` among the rows reaching that step, plus any selected value that no longer occurs. */
+/**
+ * Every value of `key` in the whole set (round 4: not only those reaching this filter),
+ * with its count at this filter and overall. Values with 0 here sort last but stay pickable.
+ */
 export function optionsForStep(pipeline: Pipeline, key: FacetKey, selected: string[]): StepOption[] {
   const stepCounts = count(inputFor(pipeline, key), key);
   const totals = count(pipeline.all, key);
-  const ids = new Set([...stepCounts.keys(), ...selected]);
+  const ids = new Set([...stepCounts.keys(), ...totals.keys(), ...selected]);
   return [...ids].map((id) => ({
     id,
     label: stepCounts.get(id)?.label ?? totals.get(id)?.label ?? labelFor(key, id, pipeline.all),

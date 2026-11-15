@@ -14,14 +14,15 @@ import { buildParams, parseFilters, toggleListValue } from "./query-state";
 import { VariantA, VariantB, VariantC } from "./variants";
 import { VariantD, VariantE, VariantF } from "./variants-round2";
 import { VariantG, VariantH, VariantI } from "./variants-round3";
+import { VariantJ, VariantK, VariantL } from "./variants-round4";
 import { buildPipeline, parseOrder, reconcileOrder, type StepKey } from "./pipeline";
 import type { FacetKey } from "./engine";
 
 const fixtureRecords = data as Publication[];
 
-// Round 3 shows D (round-2 pick) next to G/H/I. Older variants stay reachable by URL.
-export const VARIANTS = ["D", "G", "H", "I"] as const;
-const ALL_VARIANTS = ["A", "B", "C", "D", "E", "F", "G", "H", "I"] as const;
+// Round 4 shows G (round-3 base) next to J/K/L. Older variants stay reachable by URL.
+export const VARIANTS = ["G", "J", "K", "L"] as const;
+const ALL_VARIANTS = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L"] as const;
 type VariantKey = (typeof ALL_VARIANTS)[number];
 
 const VARIANT_NAMES: Record<VariantKey, string> = {
@@ -34,6 +35,9 @@ const VARIANT_NAMES: Record<VariantKey, string> = {
   G: "Quiet text",
   H: "Chip stack",
   I: "Sentence",
+  J: "Converged row · segmented operator",
+  K: "Converged row · dropdown operator",
+  L: "Converged row · toggle operator",
 };
 
 function parseVariant(value: string | null): VariantKey {
@@ -53,7 +57,7 @@ export function SearchPrototypeClient() {
   const order = useMemo(() => reconcileOrder(parseOrder(searchParams.get("steps")), filters), [searchParams, filters]);
   const negated = useMemo(() => new Set(parseOrder(searchParams.get("not"))), [searchParams]);
   const disabled = useMemo(() => new Set(parseOrder(searchParams.get("off"))), [searchParams]);
-  const isRound3 = variant === "G" || variant === "H" || variant === "I";
+  const isRound3 = ["G", "H", "I", "J", "K", "L"].includes(variant);
   const pipeline = useMemo(
     () => buildPipeline(fixtureRecords, filters, order, isRound3 ? { negated, disabled } : {}),
     [filters, order, negated, disabled, isRound3]
@@ -173,6 +177,9 @@ export function SearchPrototypeClient() {
       {variant === "G" ? <VariantG {...filterProps} /> : null}
       {variant === "H" ? <VariantH {...filterProps} /> : null}
       {variant === "I" ? <VariantI {...filterProps} /> : null}
+      {variant === "J" ? <VariantJ {...filterProps} /> : null}
+      {variant === "K" ? <VariantK {...filterProps} /> : null}
+      {variant === "L" ? <VariantL {...filterProps} /> : null}
     </div>
   );
 }

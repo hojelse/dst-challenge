@@ -107,3 +107,29 @@ the count without it, and its values are kept. Keyboard dragging reorders withou
 Picks and NOT in the picker stay a draft until the modal closes. No horizontal scroll at 390px, and
 no console errors. Caught while building: H first put "NOT" on every chip under an OR bracket, which
 reads as "not A or not B". That is the wrong logic, so the bracket now says "nor".
+
+## Round 4 (2026-11-15): one converged row, three operator styles
+
+Feedback on round 3:
+- The Add filter list should show every value, not only those left after earlier filters.
+- From G: the eye and delete buttons sit together at the right. The OR-joined values are the
+  click target for editing. Negated values are red. But "is any of" did not look clickable.
+- From H: the "any of / none of" control was more clickable, though its styling was uncertain. The
+  "200 → 142" count was liked. The big OR bracket was not.
+- From I: the eye icon was liked.
+- Everywhere, the modal must match the filter row. Earlier, its "is any of" control looked different.
+
+The switcher shows G plus J, K and L. They share one row and differ only in the operator control:
+- J: segmented pill, active side raised, red outline when "is none of"
+- K: dropdown with a chevron, red when "is none of"
+- L: a single button with a swap icon, red when "is none of"
+
+Shared in `filter-parts.tsx`: `OperatorControl` and `ValueList`. The row and the modal both render these,
+so the modal header and its selection read exactly like the row. The modal list adds a remove button per value.
+
+Picker lists: `optionsForStep` now returns every value in the whole set. Values with 0 at this filter
+are greyed and sort last, for example 42 of the 91 countries after a Text and a Topic filter.
+
+Verified with Playwright on J, K and L. The row control sets NOT. The modal operator shows the same
+state as the row, and modal values are red and joined with "nor" like the row. The eye turns a filter off.
+Add filter lists all 91 countries. No horizontal scroll at 390px, and no console errors.
