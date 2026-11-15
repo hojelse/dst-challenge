@@ -1,0 +1,14 @@
+.git
+.next
+node_modules
+coverage
+data
+.env
+.env.*
+!.env.example
+*.tsbuildinfo
+next-env.d.ts
+Dockerfile
+docker-compose.yml
+.dockerignore
+Challenge.pdf
