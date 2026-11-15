@@ -133,3 +133,19 @@ are greyed and sort last, for example 42 of the 91 countries after a Text and a 
 Verified with Playwright on J, K and L. The row control sets NOT. The modal operator shows the same
 state as the row, and modal values are red and joined with "nor" like the row. The eye turns a filter off.
 Add filter lists all 91 countries. No horizontal scroll at 390px, and no console errors.
+
+## Round 5 (2026-11-15): search bar on J
+
+Feedback: J is the best, but it needs a search bar.
+
+- A full-width search bar sits above the filter column and results. It follows the same staged rule:
+  typing shows a live "N of 200 match", Enter or the Search button applies, and Escape reverts.
+- The search is the text filter (`q`). The panel shows it as a fixed first line, `Search “climate”` with
+  `200 → 194` and a clear button. It has no drag handle, it stays first however other filters are dragged,
+  and "Text" is gone from Add filter.
+- Text search now also matches country names, as the brief requires (title, author or country).
+  Before, "Kenya" found nothing; now it finds 7.
+
+Verified with Playwright: typing does not search until Enter, Escape reverts, the search is pinned first
+even when added after other filters or when they are dragged, Clear search also clears the box, there is
+no horizontal scroll at 390px, and no console errors.

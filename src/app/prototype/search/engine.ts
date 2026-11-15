@@ -121,7 +121,10 @@ export function matchesQuery(record: Publication, query: string): boolean {
     return true;
   }
 
-  return record.institutions.some((institution) => includesText(institution.name, q));
+  // Country names too: the brief asks for search by title, author or country.
+  return record.institutions.some(
+    (institution) => includesText(institution.name, q) || includesText(parseCountryLabel(institution.country), q)
+  );
 }
 
 export function matchesAuthor(record: Publication, authorQuery: string): boolean {

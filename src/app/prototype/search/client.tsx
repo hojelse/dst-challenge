@@ -54,7 +54,13 @@ export function SearchPrototypeClient() {
   const filters = useMemo(() => parseFilters(new URLSearchParams(searchParams.toString())), [searchParams]);
 
   const view = useMemo(() => buildSearchView(fixtureRecords, filters), [filters]);
-  const order = useMemo(() => reconcileOrder(parseOrder(searchParams.get("steps")), filters), [searchParams, filters]);
+  // Variant J has a search bar: the text query is always the first filter.
+  const pinSearch = (keys: StepKey[]) => (variant === "J" && keys.includes("q") ? ["q" as StepKey, ...keys.filter((k) => k !== "q")] : keys);
+  const order = useMemo(
+    () => pinSearch(reconcileOrder(parseOrder(searchParams.get("steps")), filters)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [searchParams, filters, variant]
+  );
   const negated = useMemo(() => new Set(parseOrder(searchParams.get("not"))), [searchParams]);
   const disabled = useMemo(() => new Set(parseOrder(searchParams.get("off"))), [searchParams]);
   const isRound3 = ["G", "H", "I", "J", "K", "L"].includes(variant);
@@ -71,7 +77,7 @@ export function SearchPrototypeClient() {
     const base = new URLSearchParams(searchParams.toString());
     const nextParams = buildParams(base, nextFilters);
     nextParams.set("variant", variant);
-    const steps = reconcileOrder(nextOrder, nextFilters);
+    const steps = pinSearch(reconcileOrder(nextOrder, nextFilters));
     if (steps.length > 0) nextParams.set("steps", steps.join(","));
     else nextParams.delete("steps");
     // NOT / off flags only survive for filters that are still active.

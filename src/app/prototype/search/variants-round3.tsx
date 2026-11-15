@@ -29,7 +29,7 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Eye, EyeOff, GripVertical, Plus, X } from "lucide-react";
+import { Eye, EyeOff, GripVertical, Plus, Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Command, CommandGroup, CommandItem, CommandList } from "@/components/ui/command";
@@ -157,10 +157,18 @@ function TextEditor({
   );
 }
 
-function AddFilterMenu({ pipeline, onPick }: { pipeline: Pipeline; onPick: (key: StepKey) => void }) {
+function AddFilterMenu({
+  pipeline,
+  onPick,
+  exclude = [],
+}: {
+  pipeline: Pipeline;
+  onPick: (key: StepKey) => void;
+  exclude?: StepKey[];
+}) {
   const [open, setOpen] = useState(false);
   const used = new Set(pipeline.steps.map((s) => s.key));
-  const free = STEP_KEYS.filter((k) => !used.has(k));
+  const free = STEP_KEYS.filter((k) => !used.has(k) && !exclude.includes(k));
   if (free.length === 0) return null;
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -194,9 +202,16 @@ function AddFilterMenu({ pipeline, onPick }: { pipeline: Pipeline; onPick: (key:
   );
 }
 
-type PanelOpts = { props: FilterVariantProps; Row: (p: RowProps) => ReactNode; gap?: string; operatorStyle?: OperatorStyle };
+type PanelOpts = {
+  props: FilterVariantProps;
+  Row: (p: RowProps) => ReactNode;
+  gap?: string;
+  operatorStyle?: OperatorStyle;
+  /** Round 5: text search lives in a search bar; it is always the first, fixed line of the funnel. */
+  searchBar?: boolean;
+};
 
-function FilterPanel({ props, Row, gap = "gap-1", operatorStyle }: PanelOpts) {
+function FilterPanel({ props, Row, gap = "gap-1", operatorStyle, searchBar = false }: PanelOpts) {
   const { pipeline, filters, order } = props;
   const [picker, setPicker] = useState<FacetKey | null>(null);
   const [text, setText] = useState<"q" | "author" | null>(null);
@@ -210,7 +225,11 @@ function FilterPanel({ props, Row, gap = "gap-1", operatorStyle }: PanelOpts) {
     if (!over || active.id === over.id) return;
     const from = order.indexOf(active.id as StepKey);
     const to = order.indexOf(over.id as StepKey);
-    if (from >= 0 && to >= 0) props.onSetOrder(arrayMove(order, from, to));
+    if (from >= 0 && to >= 0) {
+      const next = arrayMove(order, from, to);
+      // Keep a search-bar query pinned first.
+      props.onSetOrder(searchBar && next.includes("q") ? ["q", ...next.filter((k) => k !== "q")] : next);
+    }
   }
 
   function open(key: StepKey) {
@@ -220,6 +239,8 @@ function FilterPanel({ props, Row, gap = "gap-1", operatorStyle }: PanelOpts) {
 
   const labelsOf = (step: PipelineStep) => (isFacet(step.key) ? step.summary.split(" or ") : [step.values[0] ?? ""]);
   const pendingNewText = text && !pipeline.steps.some((s) => s.key === text) ? text : null;
+  const searchStep = searchBar ? pipeline.steps.find((s) => s.key === "q") : undefined;
+  const rowSteps = searchBar ? pipeline.steps.filter((s) => s.key !== "q") : pipeline.steps;
 
   return (
     <div className="rounded-xl border bg-card p-3">
@@ -235,11 +256,27 @@ function FilterPanel({ props, Row, gap = "gap-1", operatorStyle }: PanelOpts) {
         <span className="text-muted-foreground">All publications</span>
         <span className="tabular-nums">{pipeline.all.length}</span>
       </div>
+      {searchBar && searchStep ? (
+        <div className="flex items-start gap-1.5 border-b py-2 pl-1 text-sm">
+          <Search className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden />
+          <div className="min-w-0 flex-1">
+            <p>
+              <span className="font-medium">Search</span> <span className="text-muted-foreground">“{searchStep.values[0]}”</span>
+            </p>
+            <p className="text-xs text-muted-foreground tabular-nums">
+              {searchStep.input.length} → <strong className="text-foreground">{searchStep.output.length}</strong>
+            </p>
+          </div>
+          <Button variant="ghost" size="icon-xs" aria-label="Clear search" onClick={() => props.onRemove("q")}>
+            <X />
+          </Button>
+        </div>
+      ) : null}
 
       <DndContext id="filters" sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
-        <SortableContext items={pipeline.steps.map((s) => s.key)} strategy={verticalListSortingStrategy}>
+        <SortableContext items={rowSteps.map((s) => s.key)} strategy={verticalListSortingStrategy}>
           <ul className={`flex flex-col ${gap} py-2`} aria-label="Filters, applied top to bottom">
-            {pipeline.steps.map((step) => (
+            {rowSteps.map((step) => (
               <SortableItem key={step.key} id={step.key}>
                 {(handle) =>
                   Row({
@@ -294,7 +331,7 @@ function FilterPanel({ props, Row, gap = "gap-1", operatorStyle }: PanelOpts) {
       ) : null}
 
       <div className="flex items-center justify-between gap-2 border-t pt-3">
-        <AddFilterMenu pipeline={pipeline} onPick={open} />
+        <AddFilterMenu pipeline={pipeline} onPick={open} exclude={searchBar ? ["q"] : []} />
         <span className="text-sm">
           <span className="text-muted-foreground">Results </span>
           <strong className="tabular-nums">{pipeline.final.length}</strong>
@@ -320,7 +357,7 @@ function FilterPanel({ props, Row, gap = "gap-1", operatorStyle }: PanelOpts) {
   );
 }
 
-export function Layout({ props, Row, gap, operatorStyle }: PanelOpts) {
+export function Layout({ props, Row, gap, operatorStyle, searchBar }: PanelOpts) {
   const { pipeline, filters } = props;
   const sorted = useMemo(() => localSort(pipeline.final, filters.sort, pipeline.all), [pipeline, filters.sort]);
   const pageCount = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
@@ -329,7 +366,7 @@ export function Layout({ props, Row, gap, operatorStyle }: PanelOpts) {
   return (
     <div className="grid gap-4 lg:grid-cols-[380px_1fr]">
       <aside className="lg:sticky lg:top-4 lg:self-start" aria-label="Filters">
-        <FilterPanel props={props} Row={Row} gap={gap} operatorStyle={operatorStyle} />
+        <FilterPanel props={props} Row={Row} gap={gap} operatorStyle={operatorStyle} searchBar={searchBar} />
       </aside>
       <section className="min-w-0 space-y-3">
         <ResultsTable

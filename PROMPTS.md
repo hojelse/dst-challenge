@@ -68,3 +68,13 @@ Tooling: Claude Code (Claude Fable 5.1) in the terminal, with the `mattpocock-sk
 **How it was checked:** `tsc`, ESLint, and a 23-assertion Playwright run, including that the modal's operator state, colour and "nor" joiner match the row. The modal looked see-through in a screenshot. A follow-up check showed this was the fade-in animation: computed opacity is 1 after it settles.
 
 **Changed by hand:** nothing yet.
+
+## 5. Search UI prototype, round 5 (Sun 15 Nov 2026)
+
+**Prompt:** "J is best, but i still want a search bar"
+
+**Delegated:** add a search bar to J. The agent made it the first, fixed line of the filter funnel instead of a separate mechanism, so the "in → out" counts stay honest. While doing so, it noticed the text matcher ignored country names, which the brief explicitly requires, and fixed that.
+
+**How it was checked:** `tsc`, ESLint and a 13-assertion Playwright run (staging, pinning under drag, clear, country match, mobile).
+
+**Changed by hand:** nothing yet.

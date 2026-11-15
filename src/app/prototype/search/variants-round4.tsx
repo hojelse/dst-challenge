@@ -8,8 +8,11 @@
 // The modal renders the same OperatorControl and ValueList as the row (filter-parts.tsx).
 //   J  segmented pill   K  dropdown   L  toggle button with a swap icon
 
-import { Eye, EyeOff, X } from "lucide-react";
+import { useState } from "react";
+import { Eye, EyeOff, Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { matchesQuery } from "./engine";
 import { FACET_KEYS, type StepKey } from "./pipeline";
 import { OperatorControl, ValueList, type OperatorStyle } from "./filter-parts";
 import { Layout, type FilterVariantProps, type RowProps } from "./variants-round3";
@@ -90,8 +93,66 @@ const RowJ = makeRow("segmented");
 const RowK = makeRow("dropdown");
 const RowL = makeRow("toggle");
 
+/**
+ * Round 5: search bar for variant J. Same staged rule as everything else: typing is a draft with a
+ * live match count, Enter (or the button) applies, Escape reverts. It feeds the "q" filter, which
+ * the panel shows as a fixed first line of the funnel.
+ */
+function SearchBar({ props }: { props: FilterVariantProps }) {
+  const applied = props.filters.q;
+  const [draft, setDraft] = useState(applied);
+  const [synced, setSynced] = useState(applied);
+  if (applied !== synced) {
+    // URL changed elsewhere (clear all, clear search): follow it.
+    setSynced(applied);
+    setDraft(applied);
+  }
+  const dirty = draft.trim() !== applied.trim();
+  const matches = draft.trim() ? props.pipeline.all.filter((r) => matchesQuery(r, draft)).length : props.pipeline.all.length;
+
+  return (
+    <form
+      role="search"
+      className="mb-4"
+      onSubmit={(e) => {
+        e.preventDefault();
+        props.onSetText("q", draft.trim());
+      }}
+    >
+      <div className="flex gap-2">
+        <div className="relative flex-1">
+          <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
+          <Input
+            type="search"
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Escape") setDraft(applied);
+            }}
+            aria-label="Search publications"
+            aria-describedby="search-hint"
+            placeholder="Search by title, author, institution or country…"
+            className="h-10 pl-9 text-base"
+          />
+        </div>
+        <Button type="submit" size="lg" className="h-10">
+          Search
+        </Button>
+      </div>
+      <p id="search-hint" className="mt-1 h-4 text-xs text-muted-foreground" aria-live="polite">
+        {dirty ? (draft.trim() ? `${matches} of ${props.pipeline.all.length} match. Press Enter to search.` : "Press Enter to clear the search.") : ""}
+      </p>
+    </form>
+  );
+}
+
 export function VariantJ(props: FilterVariantProps) {
-  return <Layout props={props} Row={RowJ} operatorStyle="segmented" />;
+  return (
+    <>
+      <SearchBar props={props} />
+      <Layout props={props} Row={RowJ} operatorStyle="segmented" searchBar />
+    </>
+  );
 }
 export function VariantK(props: FilterVariantProps) {
   return <Layout props={props} Row={RowK} operatorStyle="dropdown" />;
