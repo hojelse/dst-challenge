@@ -99,8 +99,8 @@ Rounds 1–5 of the prototype live on branch `prototype/search-ui`, which is kep
 
 **How it was checked:** the implementer ran every acceptance command, including `docker compose up --build web` and a fresh clone with `pnpm install --frozen-lockfile`, and checked in headless Chrome that the computed font is Geist. I then confirmed independently that the test files were unchanged since their commit, and reran `pnpm test` (3 passed), `pnpm test:integration` (10 passed), `pnpm lint` and `pnpm tsc --noEmit`.
 
-**Found along the way:** the generated name of the composite foreign key from `affiliations` to `authorships` exceeded Postgres's 63-character limit and was truncated, so every `db:push` saw a change. It is now named by hand. `LayoutProps<"/">` broke `tsc` on a fresh clone because Next generates that type only at build time.
+**Found along the way:** the generated name of the composite foreign key from `affiliations` to `authorships` exceeded Postgres's 63-character limit and was truncated. It is now named by hand. The implementer believed this stopped every `db:push` from seeing a change, but it did not: drizzle-kit 0.31 reads back the columns of a two-column foreign key in no fixed order, so each push drops and re-creates the key. `LayoutProps<"/">` broke `tsc` on a fresh clone because Next generates that type only at build time.
 
 **Decisions for me to review:** nullability beyond what the issue lists (`doi`, `language`, `oa_url`, `pmid`, `orcid`, `ror` and institution `type` nullable; `publication_date` NOT NULL), foreign keys with cascade from `publications`, and pnpm 10 pinned through `packageManager` (run `corepack enable`).
 
-**Changed after review (PR #11):** `title` is now nullable. #4 now asks the harvester to check whether OpenAlex Authorships can lack an Author ID.
+**Changed after review (PR #11):** `title` is now nullable. #4 now asks the harvester to check whether OpenAlex Authorships can lack an Author ID. Before merging I found the foreign key re-created on every push; I chose to accept it and correct the comment and PR text rather than switch to migrations or drop the two-column key.
