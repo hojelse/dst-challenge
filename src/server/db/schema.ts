@@ -92,7 +92,9 @@ export const affiliations = pgTable(
       columns: [table.publicationId, table.position, table.institutionId],
     }),
     // Named explicitly: the generated name exceeds Postgres's 63-character
-    // limit, gets truncated, and would make every push see a change.
+    // limit and gets truncated. Every push still drops and re-creates this
+    // key: drizzle-kit 0.31 reads back the columns of a two-column foreign
+    // key in no fixed order, so they never match. This is harmless.
     foreignKey({
       name: "affiliations_authorship_fk",
       columns: [table.publicationId, table.position],
