@@ -232,7 +232,7 @@ export function FilterPicker(props: PickerProps) {
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex min-h-7 items-start gap-2 text-sm">
+        <div className="flex min-h-7 shrink-0 items-start gap-2 text-sm">
           <div className="min-w-0 flex-1">
             {draft.length === 0 ? (
               <span className="text-muted-foreground">
