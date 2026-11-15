@@ -12,17 +12,27 @@ import {
 } from "./engine";
 import { buildParams, parseFilters, toggleListValue } from "./query-state";
 import { VariantA, VariantB, VariantC } from "./variants";
+import { VariantD, VariantE, VariantF } from "./variants-round2";
+import { buildPipeline, parseOrder, reconcileOrder, type StepKey } from "./pipeline";
 
 const fixtureRecords = data as Publication[];
 
-type VariantKey = "A" | "B" | "C";
+// Round 2 shows A (round-1 front-runner) next to D/E/F. B and C stay reachable by URL.
+export const VARIANTS = ["A", "D", "E", "F"] as const;
+const ALL_VARIANTS = ["A", "B", "C", "D", "E", "F"] as const;
+type VariantKey = (typeof ALL_VARIANTS)[number];
+
+const VARIANT_NAMES: Record<VariantKey, string> = {
+  A: "Progressive filters (round 1)",
+  B: "Sidebar catalog (round 1)",
+  C: "Query sentence (round 1)",
+  D: "Plan rail",
+  E: "Step inspector",
+  F: "EXPLAIN console",
+};
 
 function parseVariant(value: string | null): VariantKey {
-  if (value === "A" || value === "B" || value === "C") {
-    return value;
-  }
-
-  return "A";
+  return (ALL_VARIANTS as readonly string[]).includes(value ?? "") ? (value as VariantKey) : "A";
 }
 
 export function SearchPrototypeClient() {
@@ -35,11 +45,16 @@ export function SearchPrototypeClient() {
   const filters = useMemo(() => parseFilters(new URLSearchParams(searchParams.toString())), [searchParams]);
 
   const view = useMemo(() => buildSearchView(fixtureRecords, filters), [filters]);
+  const order = useMemo(() => reconcileOrder(parseOrder(searchParams.get("steps")), filters), [searchParams, filters]);
+  const pipeline = useMemo(() => buildPipeline(fixtureRecords, filters, order), [filters, order]);
 
-  function replaceFilters(nextFilters: SearchFilters) {
+  function replaceFilters(nextFilters: SearchFilters, nextOrder: StepKey[] = order) {
     const base = new URLSearchParams(searchParams.toString());
     const nextParams = buildParams(base, nextFilters);
     nextParams.set("variant", variant);
+    const steps = reconcileOrder(nextOrder, nextFilters);
+    if (steps.length > 0) nextParams.set("steps", steps.join(","));
+    else nextParams.delete("steps");
     router.replace(`${pathname}?${nextParams.toString()}`, { scroll: false });
   }
 
@@ -79,18 +94,36 @@ export function SearchPrototypeClient() {
     },
   };
 
+  const pipelineProps = {
+    ...variantProps,
+    pipeline,
+    onMoveStep: (key: StepKey, dir: -1 | 1) => {
+      const i = order.indexOf(key);
+      const j = i + dir;
+      if (i < 0 || j < 0 || j >= order.length) return;
+      const next = [...order];
+      [next[i], next[j]] = [next[j]!, next[i]!];
+      replaceFilters(filters, next);
+    },
+    onRemoveStep: (key: StepKey) =>
+      patchFilters(key === "q" || key === "author" ? { [key]: "" } : ({ [key]: [] } as Partial<SearchFilters>)),
+  };
+
   return (
     <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6">
       <header className="mb-6 space-y-1">
         <h1 className="text-2xl font-semibold">Search UI Prototype</h1>
         <p className="text-sm text-muted-foreground">
-          Variant {variant} · {view.total} matches from {fixtureRecords.length} OpenAlex records
+          Variant {variant}: {VARIANT_NAMES[variant]} · {view.total} matches from {fixtureRecords.length} OpenAlex records
         </p>
       </header>
 
       {variant === "A" ? <VariantA {...variantProps} /> : null}
       {variant === "B" ? <VariantB {...variantProps} /> : null}
       {variant === "C" ? <VariantC {...variantProps} /> : null}
+      {variant === "D" ? <VariantD {...pipelineProps} /> : null}
+      {variant === "E" ? <VariantE {...pipelineProps} /> : null}
+      {variant === "F" ? <VariantF {...pipelineProps} /> : null}
     </div>
   );
 }

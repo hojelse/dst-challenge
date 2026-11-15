@@ -39,3 +39,38 @@ institutions[{id,name,country}], topics[{id,name,field,domain}]. Extremes: 100 a
   `items` (Record<string, ReactNode>) with `value`/`onValueChange`; Tooltip needs `TooltipProvider`.
 - cmdk 1.1.1 for Command (`CommandInput`, `CommandList`, `CommandEmpty`, `CommandGroup`, `CommandItem onSelect`).
 - Switcher lives in `src/components/prototype-switcher.tsx`, hidden when NODE_ENV === "production".
+
+## Round 2 (2026-11-15): EXPLAIN-style narrowing, picks apply on close, TanStack Table
+
+Findings from round 1 (variant A): an order of operations that narrows from all publications
+down to the selection, with a count per operation (like Postgres EXPLAIN), reads well. Picking
+values in a modal should only take effect when the modal closes.
+
+Switcher now shows A (round-1 baseline) plus three new variants. B and C remain reachable by URL.
+
+| Variant | Layout | Picker | Results |
+|---|---|---|---|
+| D Plan rail | Vertical top-down funnel in a sidebar, bar per step shows rows in and out | Dialog with a TanStack table of values | TanStack table: Date/Citations header sort, column toggle, expandable rows |
+| E Step inspector | Horizontal pipeline; click any step to see rows *at that point*, kept or dropped there | Right-hand Sheet, same table | Card list, local paging |
+| F EXPLAIN console | Literal bottom-up `EXPLAIN ANALYZE` text, `rows=` and `removed=` per Filter line | Inline editor under the line, applies on Done | Dense TanStack table |
+
+Shared mechanics:
+- `pipeline.ts`: active filters are ordered steps (URL `steps=q,topics,...`, order of adding;
+  reorder with arrows). A step's input is the previous step's output. Final result is order-independent.
+- Picker values are counted against the rows *reaching that step* ("At this step") and overall.
+- Staged edits everywhere: picker ticks are a draft with a live "keeps N of M" preview. Closing the
+  modal by any route (Done, X, Escape, backdrop) applies; only "Discard changes" does not.
+  Text steps follow the same rule: Enter or blur applies, Escape reverts.
+- Elasticsearch mapping for later: one `filter` aggregation per step (AND of earlier steps) with a
+  `terms` sub-aggregation for that step's facet.
+
+Observations while building:
+- A Country=Denmark step never removes anything: every record is in scope because of a Danish
+  institution. Country is only useful for *other* countries.
+- 7 of 200 records have no source; the engine now treats null text fields as empty (it crashed on any text query).
+- The app font falls back to a serif: `globals.css` defines `--font-sans: var(--font-sans)`. Not fixed here.
+- TanStack Table is v9 (`useTable`, `tableFeatures`, `table.FlexRender`), not the v8 `useReactTable` API.
+
+Verified with a Playwright script against the dev server: all variants render empty and filtered with
+no console errors; picker draft does not touch the URL until close; Discard leaves it unchanged;
+reordering keeps the final count; header sort round-trips to relevance; no horizontal scroll at 390px.

@@ -80,7 +80,7 @@ export type ExplainPlanStep = {
   outputRows: number;
 };
 
-type FacetKey = keyof Pick<SearchFilters, "topics" | "countries" | "institutions" | "oa">;
+export type FacetKey = keyof Pick<SearchFilters, "topics" | "countries" | "institutions" | "oa">;
 
 type EnrichedRecord = {
   record: Publication;
@@ -90,11 +90,11 @@ type EnrichedRecord = {
 const collator = new Intl.Collator("en", { sensitivity: "base" });
 const countryDisplay = new Intl.DisplayNames(["en"], { type: "region" });
 
-function normalize(value: string): string {
-  return value.trim().toLowerCase();
+function normalize(value: string | null | undefined): string {
+  return (value ?? "").trim().toLowerCase();
 }
 
-function includesText(haystack: string, needle: string): boolean {
+function includesText(haystack: string | null | undefined, needle: string): boolean {
   if (!needle) {
     return true;
   }
@@ -102,7 +102,7 @@ function includesText(haystack: string, needle: string): boolean {
   return normalize(haystack).includes(needle);
 }
 
-function matchesQuery(record: Publication, query: string): boolean {
+export function matchesQuery(record: Publication, query: string): boolean {
   const q = normalize(query);
 
   if (!q) {
@@ -124,7 +124,7 @@ function matchesQuery(record: Publication, query: string): boolean {
   return record.institutions.some((institution) => includesText(institution.name, q));
 }
 
-function matchesAuthor(record: Publication, authorQuery: string): boolean {
+export function matchesAuthor(record: Publication, authorQuery: string): boolean {
   const q = normalize(authorQuery);
   if (!q) {
     return true;
@@ -133,7 +133,7 @@ function matchesAuthor(record: Publication, authorQuery: string): boolean {
   return record.authors.some((author) => includesText(author.name, q));
 }
 
-function matchesFacet(record: Publication, filters: SearchFilters, facet: FacetKey): boolean {
+export function matchesFacet(record: Publication, filters: SearchFilters, facet: FacetKey): boolean {
   const selected = filters[facet];
   if (selected.length === 0) {
     return true;
@@ -300,7 +300,7 @@ function toFacetOptions(
     });
 }
 
-function parseCountryLabel(code: string): string {
+export function parseCountryLabel(code: string): string {
   if (!code) {
     return "Unknown";
   }

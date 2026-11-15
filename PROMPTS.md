@@ -38,3 +38,13 @@ Tooling: Claude Code (Claude Fable 5.1) in the terminal, with the `mattpocock-sk
 **My decisions, round 3:** facet-count semantics accepted but must be explicit in the UI; detail page as proposed for now; edge states and API validation as proposed; accessibility baseline plus logical tab order; OpenAlex short IDs everywhere in the app; harvest, test and runtime setup as proposed; issues as the approval gate; separate test-writer and implementer agents. Main is protected by a ruleset, so every change goes through a PR. Facet controls, explicit OR/AND, page layout and result card go to a UI prototype before deciding.
 
 **Delegated next:** `/prototype` of the search page: three structurally different variants over 200 real OpenAlex records. The agent scaffolded the Next 16 + Tailwind 4 + shadcn app to host it, verified the Base UI and Next 16 APIs from `node_modules` instead of memory, and wrote the plan in `src/app/prototype/search/README.md`. Variants not yet built.
+
+## 2. Search UI prototype, round 2 (Sun 15 Nov 2026)
+
+**Prompt:** "i continued working on the prototypes in another session, variant a is getting close, but i want another round of variations. What i have found out so far is. Akin to PSQL EXPLAIN, An order of operations/filtering and count that narrows down from all to the selection per operation is nice. i would like that picking from a modal only applies as soon as i close the modal. the exact interactions and ui components is not settled. consider tanstack tables"
+
+**Delegated:** three new structurally different variants (plan rail, step inspector, EXPLAIN console) next to round-1 variant A, an ordered-pipeline module with per-step counts, a staged picker, and a TanStack results table.
+
+**How it was checked:** the agent read TanStack Table v9's type definitions from `node_modules` before using it, since v9 changed the API from v8. It ran `tsc` and ESLint. A Playwright script drove the real dev server and checked render, apply-on-close, discard, reorder, sort and mobile overflow. That run found a crash on any text query, caused by null `source` fields in the sample data, which the agent fixed. Screenshots exposed clipped badges and wrapped dates, also fixed.
+
+**Changed by hand:** nothing yet; variants are for me to compare.

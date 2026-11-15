@@ -4,29 +4,25 @@ import { useMemo } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 
-type VariantValue = "A" | "B" | "C";
-
-const variants: VariantValue[] = ["A", "B", "C"];
-
 type PrototypeSwitcherProps = {
   queryKey: string;
+  variants: readonly string[];
 };
 
-export function PrototypeSwitcher({ queryKey }: PrototypeSwitcherProps) {
+export function PrototypeSwitcher({ queryKey, variants }: PrototypeSwitcherProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
   const active = useMemo(() => {
-    const value = searchParams.get(queryKey);
-    return value === "A" || value === "B" || value === "C" ? value : "A";
-  }, [queryKey, searchParams]);
+    return searchParams.get(queryKey) ?? variants[0];
+  }, [queryKey, searchParams, variants]);
 
   if (process.env.NODE_ENV === "production") {
     return null;
   }
 
-  function setVariant(nextVariant: VariantValue) {
+  function setVariant(nextVariant: string) {
     const next = new URLSearchParams(searchParams.toString());
     next.set(queryKey, nextVariant);
     router.replace(`${pathname}?${next.toString()}`, { scroll: false });
