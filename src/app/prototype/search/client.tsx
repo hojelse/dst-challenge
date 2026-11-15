@@ -13,13 +13,15 @@ import {
 import { buildParams, parseFilters, toggleListValue } from "./query-state";
 import { VariantA, VariantB, VariantC } from "./variants";
 import { VariantD, VariantE, VariantF } from "./variants-round2";
+import { VariantG, VariantH, VariantI } from "./variants-round3";
 import { buildPipeline, parseOrder, reconcileOrder, type StepKey } from "./pipeline";
+import type { FacetKey } from "./engine";
 
 const fixtureRecords = data as Publication[];
 
-// Round 2 shows A (round-1 front-runner) next to D/E/F. B and C stay reachable by URL.
-export const VARIANTS = ["A", "D", "E", "F"] as const;
-const ALL_VARIANTS = ["A", "B", "C", "D", "E", "F"] as const;
+// Round 3 shows D (round-2 pick) next to G/H/I. Older variants stay reachable by URL.
+export const VARIANTS = ["D", "G", "H", "I"] as const;
+const ALL_VARIANTS = ["A", "B", "C", "D", "E", "F", "G", "H", "I"] as const;
 type VariantKey = (typeof ALL_VARIANTS)[number];
 
 const VARIANT_NAMES: Record<VariantKey, string> = {
@@ -29,6 +31,9 @@ const VARIANT_NAMES: Record<VariantKey, string> = {
   D: "Plan rail",
   E: "Step inspector",
   F: "EXPLAIN console",
+  G: "Quiet text",
+  H: "Chip stack",
+  I: "Sentence",
 };
 
 function parseVariant(value: string | null): VariantKey {
@@ -46,15 +51,31 @@ export function SearchPrototypeClient() {
 
   const view = useMemo(() => buildSearchView(fixtureRecords, filters), [filters]);
   const order = useMemo(() => reconcileOrder(parseOrder(searchParams.get("steps")), filters), [searchParams, filters]);
-  const pipeline = useMemo(() => buildPipeline(fixtureRecords, filters, order), [filters, order]);
+  const negated = useMemo(() => new Set(parseOrder(searchParams.get("not"))), [searchParams]);
+  const disabled = useMemo(() => new Set(parseOrder(searchParams.get("off"))), [searchParams]);
+  const isRound3 = variant === "G" || variant === "H" || variant === "I";
+  const pipeline = useMemo(
+    () => buildPipeline(fixtureRecords, filters, order, isRound3 ? { negated, disabled } : {}),
+    [filters, order, negated, disabled, isRound3]
+  );
 
-  function replaceFilters(nextFilters: SearchFilters, nextOrder: StepKey[] = order) {
+  function replaceFilters(
+    nextFilters: SearchFilters,
+    nextOrder: StepKey[] = order,
+    flags: { not?: Set<StepKey>; off?: Set<StepKey> } = {}
+  ) {
     const base = new URLSearchParams(searchParams.toString());
     const nextParams = buildParams(base, nextFilters);
     nextParams.set("variant", variant);
     const steps = reconcileOrder(nextOrder, nextFilters);
     if (steps.length > 0) nextParams.set("steps", steps.join(","));
     else nextParams.delete("steps");
+    // NOT / off flags only survive for filters that are still active.
+    for (const [name, set] of [["not", flags.not ?? negated], ["off", flags.off ?? disabled]] as const) {
+      const kept = steps.filter((k) => set.has(k));
+      if (kept.length > 0) nextParams.set(name, kept.join(","));
+      else nextParams.delete(name);
+    }
     router.replace(`${pathname}?${nextParams.toString()}`, { scroll: false });
   }
 
@@ -109,12 +130,37 @@ export function SearchPrototypeClient() {
       patchFilters(key === "q" || key === "author" ? { [key]: "" } : ({ [key]: [] } as Partial<SearchFilters>)),
   };
 
+  const withFlag = (set: Set<StepKey>, key: StepKey, on: boolean) => {
+    const next = new Set(set);
+    if (on) next.add(key);
+    else next.delete(key);
+    return next;
+  };
+
+  const filterProps = {
+    filters,
+    pipeline,
+    order,
+    onSetText: variantProps.onSetTextFilter,
+    onApplyFacet: (key: FacetKey, values: string[], neg: boolean) =>
+      replaceFilters({ ...filters, [key]: values, page: 1 }, order, { not: withFlag(negated, key, neg) }),
+    onSetNegated: (key: StepKey, neg: boolean) =>
+      replaceFilters({ ...filters, page: 1 }, order, { not: withFlag(negated, key, neg) }),
+    onSetDisabled: (key: StepKey, off: boolean) =>
+      replaceFilters({ ...filters, page: 1 }, order, { off: withFlag(disabled, key, off) }),
+    onSetOrder: (next: StepKey[]) => replaceFilters(filters, next),
+    onRemove: pipelineProps.onRemoveStep,
+    onClearAll: variantProps.onClearAll,
+    onSetSort: variantProps.onSetSort,
+    onSetPage: variantProps.onSetPage,
+  };
+
   return (
     <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6">
       <header className="mb-6 space-y-1">
         <h1 className="text-2xl font-semibold">Search UI Prototype</h1>
         <p className="text-sm text-muted-foreground">
-          Variant {variant}: {VARIANT_NAMES[variant]} · {view.total} matches from {fixtureRecords.length} OpenAlex records
+          Variant {variant}: {VARIANT_NAMES[variant]} · {isRound3 ? pipeline.final.length : view.total} matches from {fixtureRecords.length} OpenAlex records
         </p>
       </header>
 
@@ -124,6 +170,9 @@ export function SearchPrototypeClient() {
       {variant === "D" ? <VariantD {...pipelineProps} /> : null}
       {variant === "E" ? <VariantE {...pipelineProps} /> : null}
       {variant === "F" ? <VariantF {...pipelineProps} /> : null}
+      {variant === "G" ? <VariantG {...filterProps} /> : null}
+      {variant === "H" ? <VariantH {...filterProps} /> : null}
+      {variant === "I" ? <VariantI {...filterProps} /> : null}
     </div>
   );
 }

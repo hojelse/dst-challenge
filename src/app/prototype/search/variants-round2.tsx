@@ -366,7 +366,7 @@ export function VariantD(props: PipelineVariantProps) {
 
 // ───────────────────────────────────────────────────────────── E: Step inspector
 
-function localSort(records: Publication[], sort: SortKey, all: Publication[]): Publication[] {
+export function localSort(records: Publication[], sort: SortKey, all: Publication[]): Publication[] {
   if (sort === "relevance") {
     const rank = new Map(all.map((r, i) => [r.id, i]));
     return [...records].sort((a, b) => (rank.get(a.id) ?? 0) - (rank.get(b.id) ?? 0));

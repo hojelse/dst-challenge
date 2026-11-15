@@ -74,3 +74,36 @@ Observations while building:
 Verified with a Playwright script against the dev server: all variants render empty and filtered with
 no console errors; picker draft does not touch the URL until close; Discard leaves it unchanged;
 reordering keeps the final count; header sort round-trips to relevance; no horizontal scroll at 390px.
+
+## Round 3 (2026-11-15): refining variant D
+
+Feedback on round 2: D is the favourite. Keep its left column and its centered modal. Use
+filter wording ("Filters", "Add filter") instead of plan/step/narrow. Drop the timeline look and the
+percentage bars, but keep "how many it removes" and "how many are left". Use drag handles instead
+of arrows. E's simpler, less cluttered look is preferred. Explore how OR is styled, what happens with
+many values, NOT, and turning a filter off without deleting it.
+
+The switcher shows D plus G, H and I. All three share one panel and differ only in the filter row:
+
+| | G Quiet text | H Chip stack | I Sentence |
+|---|---|---|---|
+| OR | plain text, muted "or" | chips stacked under an OR bracket | natural sentence "A, B or 3 other topics" |
+| Many values | first 3, then "or 9 more…" (opens modal) | first 4, then "Show all 12" inline | first 2, then "or 10 other topics" |
+| NOT | click the dotted "is any of" text | "any of / none of" segmented control | click the verb: "is" becomes "is not", "or" becomes "nor" |
+| Off | switch; row fades, values struck through | checkbox like a layers panel; dashed card | eye icon; sentence struck through |
+| Counts | "−142 · 52 left · without it 194" | "194 → 142" | "Removes 142, 52 left. Without it: 194." |
+
+Shared:
+- Drag handles from `@dnd-kit/sortable`. They work with a pointer, and with the keyboard: Space, then arrows, then Space.
+- NOT means "none of" (NOT (A OR B)). It sits in the URL as `not=topics,...`. The picker modal
+  also has an "is any of / is none of" switch, staged like the picks, so closing applies both.
+- Off filters keep their values but let everything through. They sit in the URL as `off=oa,...`.
+  Every filter reports what the final result would be if it were flipped on or off.
+- Elasticsearch mapping for later: NOT is a `bool.must_not`; an off filter is simply left out of the
+  query, and its "would remove" count is one extra `filter` aggregation.
+
+Verified with Playwright on G, H and I. NOT changes the results. Turning a filter off gives exactly
+the count without it, and its values are kept. Keyboard dragging reorders without changing the result.
+Picks and NOT in the picker stay a draft until the modal closes. No horizontal scroll at 390px, and
+no console errors. Caught while building: H first put "NOT" on every chip under an OR bracket, which
+reads as "not A or not B". That is the wrong logic, so the bracket now says "nor".

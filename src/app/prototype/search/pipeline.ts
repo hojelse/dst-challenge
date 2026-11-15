@@ -48,7 +48,17 @@ export type PipelineStep = {
   values: string[];
   input: Publication[];
   output: Publication[];
+  /** Round 3: NOT. Keeps rows that do NOT match. */
+  negated: boolean;
+  /** Round 3: disabled filters pass everything through but still report what they would remove. */
+  disabled: boolean;
+  /** Rows this filter removes from its input (or would remove, when disabled). */
+  removes: number;
+  /** Final result count if this filter's enabled state were flipped. */
+  finalIfToggled: number;
 };
+
+export type PipelineFlags = { negated?: ReadonlySet<StepKey>; disabled?: ReadonlySet<StepKey> };
 
 export type Pipeline = {
   all: Publication[];
@@ -84,10 +94,14 @@ export function parseOrder(raw: string | null): StepKey[] {
   return raw.split(",").filter((part): part is StepKey => (STEP_KEYS as string[]).includes(part));
 }
 
-function predicate(key: StepKey, filters: SearchFilters): (record: Publication) => boolean {
-  if (key === "q") return (record) => matchesQuery(record, filters.q);
-  if (key === "author") return (record) => matchesAuthor(record, filters.author);
-  return (record) => matchesFacet(record, filters, key);
+function predicate(key: StepKey, filters: SearchFilters, negated = false): (record: Publication) => boolean {
+  const base =
+    key === "q"
+      ? (record: Publication) => matchesQuery(record, filters.q)
+      : key === "author"
+        ? (record: Publication) => matchesAuthor(record, filters.author)
+        : (record: Publication) => matchesFacet(record, filters, key);
+  return negated ? (record) => !base(record) : base;
 }
 
 function summaryFor(key: StepKey, filters: SearchFilters, all: Publication[]): string {
@@ -96,12 +110,31 @@ function summaryFor(key: StepKey, filters: SearchFilters, all: Publication[]): s
   return labels.join(" or ");
 }
 
-export function buildPipeline(all: Publication[], filters: SearchFilters, order: StepKey[]): Pipeline {
+export function buildPipeline(
+  all: Publication[],
+  filters: SearchFilters,
+  order: StepKey[],
+  flags: PipelineFlags = {}
+): Pipeline {
+  const keys = reconcileOrder(order, filters);
+  const negated = flags.negated ?? new Set<StepKey>();
+  const disabled = flags.disabled ?? new Set<StepKey>();
+  const tests = new Map(keys.map((key) => [key, predicate(key, filters, negated.has(key))]));
+
+  // Final count with a given set of keys switched off.
+  const finalCount = (off: ReadonlySet<StepKey>) =>
+    all.filter((record) => keys.every((key) => off.has(key) || tests.get(key)!(record))).length;
+
   const steps: PipelineStep[] = [];
   let current = all;
-  for (const key of reconcileOrder(order, filters)) {
-    const test = predicate(key, filters);
-    const output = current.filter(test);
+  for (const key of keys) {
+    const test = tests.get(key)!;
+    const kept = current.filter(test);
+    const isOff = disabled.has(key);
+    const flipped = new Set(disabled);
+    if (isOff) flipped.delete(key);
+    else flipped.add(key);
+    const output = isOff ? current : kept;
     steps.push({
       key,
       label: STEP_LABEL[key],
@@ -109,6 +142,10 @@ export function buildPipeline(all: Publication[], filters: SearchFilters, order:
       values: key === "q" || key === "author" ? [filters[key]] : filters[key],
       input: current,
       output,
+      negated: negated.has(key),
+      disabled: isOff,
+      removes: current.length - kept.length,
+      finalIfToggled: finalCount(flipped),
     });
     current = output;
   }
@@ -167,8 +204,8 @@ export function optionsForStep(pipeline: Pipeline, key: FacetKey, selected: stri
 }
 
 /** How many rows a step would keep with a draft selection, given its input. */
-export function previewKeep(input: Publication[], key: FacetKey, draft: string[]): number {
+export function previewKeep(input: Publication[], key: FacetKey, draft: string[], negated = false): number {
   if (draft.length === 0) return input.length;
   const probe = { [key]: draft } as unknown as SearchFilters;
-  return input.filter((record) => matchesFacet(record, probe, key)).length;
+  return input.filter((record) => matchesFacet(record, probe, key) !== negated).length;
 }

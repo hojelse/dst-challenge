@@ -63,8 +63,18 @@ type PickerProps = {
   selected: string[];
   /** Rows reaching this step; used for the live "keeps N of M" preview. */
   input: Publication[];
-  onApply: (values: string[]) => void;
+  onApply: (values: string[], negated: boolean) => void;
   container?: "dialog" | "sheet";
+  /** Round 3: offer "is any of / is none of" inside the picker (staged with the picks). */
+  negatable?: boolean;
+  negated?: boolean;
+};
+
+type Draft = {
+  draft: string[];
+  setDraft: (next: string[] | ((prev: string[]) => string[])) => void;
+  draftNeg: boolean;
+  setDraftNeg: (next: boolean) => void;
 };
 
 export function StagedFacetPicker(props: PickerProps) {
@@ -75,11 +85,12 @@ export function StagedFacetPicker(props: PickerProps) {
 
 function useStaged(props: PickerProps) {
   const [draft, setDraft] = useState<string[]>(props.selected);
+  const [draftNeg, setDraftNeg] = useState<boolean>(props.negated ?? false);
   const discard = useRef(false);
 
   function handleOpenChange(next: boolean) {
     if (!next) {
-      if (!discard.current) props.onApply(draft);
+      if (!discard.current) props.onApply(draft, draftNeg);
       discard.current = false;
     }
     props.onOpenChange(next);
@@ -90,7 +101,7 @@ function useStaged(props: PickerProps) {
     handleOpenChange(false);
   }
 
-  return { draft, setDraft, handleOpenChange, discardAndClose };
+  return { draft, setDraft, draftNeg, setDraftNeg, handleOpenChange, discardAndClose };
 }
 
 function DialogShell(props: PickerProps) {
@@ -103,12 +114,14 @@ function DialogBody(props: PickerProps) {
     <Dialog open onOpenChange={staged.handleOpenChange}>
       <DialogContent className="flex max-h-[85vh] flex-col gap-3 sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle>{STEP_LABEL[props.facet]} is any of…</DialogTitle>
+          <DialogTitle>
+            <PickerTitle {...props} draftNeg={staged.draftNeg} setDraftNeg={staged.setDraftNeg} />
+          </DialogTitle>
           <DialogDescription>{STEP_HINT[props.facet]} Changes apply when you close this window.</DialogDescription>
         </DialogHeader>
-        <PickerBody {...props} draft={staged.draft} setDraft={staged.setDraft} />
+        <PickerBody {...props} {...staged} />
         <DialogFooter className="items-center sm:justify-between">
-          <Preview {...props} draft={staged.draft} />
+          <Preview {...props} {...staged} />
           <div className="flex gap-2">
             <Button variant="ghost" onClick={staged.discardAndClose}>
               Discard changes
@@ -135,10 +148,10 @@ function SheetBody(props: PickerProps) {
           <SheetDescription>{STEP_HINT[props.facet]} Changes apply when you close this panel.</SheetDescription>
         </SheetHeader>
         <div className="flex min-h-0 flex-1 flex-col gap-3 px-4">
-          <PickerBody {...props} draft={staged.draft} setDraft={staged.setDraft} />
+          <PickerBody {...props} {...staged} />
         </div>
         <SheetFooter className="gap-3">
-          <Preview {...props} draft={staged.draft} />
+          <Preview {...props} {...staged} />
           <div className="flex justify-end gap-2">
             <Button variant="ghost" onClick={staged.discardAndClose}>
               Discard changes
@@ -151,15 +164,44 @@ function SheetBody(props: PickerProps) {
   );
 }
 
-function Preview({ input, facet, draft, selected }: PickerProps & { draft: string[] }) {
-  const keep = previewKeep(input, facet, draft);
-  const now = previewKeep(input, facet, selected);
+function PickerTitle({
+  facet,
+  negatable,
+  draftNeg,
+  setDraftNeg,
+}: PickerProps & Pick<Draft, "draftNeg" | "setDraftNeg">) {
+  if (!negatable) return <>{STEP_LABEL[facet]} is any of…</>;
+  return (
+    <span className="inline-flex flex-wrap items-center gap-2">
+      {STEP_LABEL[facet]}
+      <span className="inline-flex rounded-lg border p-0.5 text-sm font-normal" role="radiogroup" aria-label="Match">
+        {([false, true] as const).map((neg) => (
+          <button
+            key={String(neg)}
+            type="button"
+            role="radio"
+            aria-checked={draftNeg === neg}
+            onClick={() => setDraftNeg(neg)}
+            className={`rounded-md px-2 py-0.5 ${draftNeg === neg ? (neg ? "bg-destructive/10 text-destructive" : "bg-secondary") : "text-muted-foreground hover:text-foreground"}`}
+          >
+            {neg ? "is none of" : "is any of"}
+          </button>
+        ))}
+      </span>
+    </span>
+  );
+}
+
+function Preview({ input, facet, draft, selected, draftNeg = false, negated = false }: PickerProps & Partial<Draft> & { draft: string[] }) {
+  const keep = previewKeep(input, facet, draft, draftNeg);
+  const now = previewKeep(input, facet, selected, negated);
   const pct = input.length === 0 ? 0 : (keep / input.length) * 100;
-  const changed = draft.length !== selected.length || draft.some((id) => !selected.includes(id));
+  const changed =
+    draftNeg !== negated || draft.length !== selected.length || draft.some((id) => !selected.includes(id));
   return (
     <div className="min-w-0 flex-1 space-y-1 text-sm" aria-live="polite">
       <p>
-        This step keeps <strong className="tabular-nums">{keep}</strong> of{" "}
+        This filter keeps <strong className="tabular-nums">{keep}</strong> of{" "}
         <span className="tabular-nums">{input.length}</span> publications
         {changed ? <span className="text-muted-foreground"> (currently {now})</span> : null}
       </p>
@@ -170,13 +212,17 @@ function Preview({ input, facet, draft, selected }: PickerProps & { draft: strin
   );
 }
 
+const CHIP_LIMIT = 8;
+
 function PickerBody({
   facet,
   options,
   input,
   draft,
   setDraft,
-}: PickerProps & { draft: string[]; setDraft: (next: string[] | ((prev: string[]) => string[])) => void }) {
+  draftNeg = false,
+}: PickerProps & Pick<Draft, "draft" | "setDraft"> & Partial<Draft>) {
+  const [showAllChips, setShowAllChips] = useState(false);
   const toggle = (id: string) =>
     setDraft((prev) => (prev.includes(id) ? prev.filter((v) => v !== id) : [...prev, id]));
 
@@ -185,7 +231,7 @@ function PickerBody({
       col.columns([
         col.display({ id: "pick", header: "", enableSorting: false }),
         col.accessor("label", { header: STEP_LABEL[facet], sortFn: "alphanumeric" }),
-        col.accessor("stepCount", { header: "At this step", sortFn: "basic", sortDescFirst: true }),
+        col.accessor("stepCount", { header: "Here", sortFn: "basic", sortDescFirst: true }),
         col.accessor("totalCount", { header: "Overall", sortFn: "basic", sortDescFirst: true }),
       ]),
     [facet]
@@ -207,12 +253,12 @@ function PickerBody({
     <>
       <div className="flex min-h-7 flex-wrap items-center gap-1.5 text-sm">
         {draft.length === 0 ? (
-          <span className="text-muted-foreground">Nothing picked: this step lets everything through.</span>
+          <span className="text-muted-foreground">Nothing picked: this filter lets everything through.</span>
         ) : (
-          draft.map((id, i) => (
+          (showAllChips ? draft : draft.slice(0, CHIP_LIMIT)).map((id, i) => (
             <span key={id} className="inline-flex items-center gap-1.5">
               {i > 0 ? <span className="text-xs font-medium text-muted-foreground uppercase">or</span> : null}
-              <Badge variant="secondary" className="h-6 gap-1 pr-1">
+              <Badge variant="secondary" className={`h-6 gap-1 pr-1 ${draftNeg ? "bg-destructive/10 text-destructive line-through decoration-destructive/40" : ""}`}>
                 {labelOf.get(id) ?? id}
                 <button
                   type="button"
@@ -226,6 +272,16 @@ function PickerBody({
             </span>
           ))
         )}
+        {draft.length > CHIP_LIMIT ? (
+          <Button variant="link" size="xs" onClick={() => setShowAllChips((v) => !v)}>
+            {showAllChips ? "Show fewer" : `+${draft.length - CHIP_LIMIT} more`}
+          </Button>
+        ) : null}
+        {draft.length > 1 ? (
+          <Button variant="ghost" size="xs" className="ml-auto" onClick={() => setDraft([])}>
+            Clear picks
+          </Button>
+        ) : null}
       </div>
 
       <Input
@@ -311,6 +367,7 @@ export function InlineStagedEditor(
 ) {
   const [draft, setDraft] = useState<string[]>(props.selected);
   const full: PickerProps = { ...props, open: true, onOpenChange: () => {} };
+  const negated = props.negated ?? false;
   return (
     <div className="flex max-h-[28rem] flex-col gap-2 rounded-lg border bg-background p-3 font-sans">
       <PickerBody {...full} draft={draft} setDraft={setDraft} />
@@ -323,7 +380,7 @@ export function InlineStagedEditor(
           <Button
             size="sm"
             onClick={() => {
-              props.onApply(draft);
+              props.onApply(draft, negated);
               props.onClose();
             }}
           >

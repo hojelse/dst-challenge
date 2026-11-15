@@ -48,3 +48,13 @@ Tooling: Claude Code (Claude Fable 5.1) in the terminal, with the `mattpocock-sk
 **How it was checked:** the agent read TanStack Table v9's type definitions from `node_modules` before using it, since v9 changed the API from v8. It ran `tsc` and ESLint. A Playwright script drove the real dev server and checked render, apply-on-close, discard, reorder, sort and mobile overflow. That run found a crash on any text query, caused by null `source` fields in the sample data, which the agent fixed. Screenshots exposed clipped badges and wrapped dates, also fixed.
 
 **Changed by hand:** nothing yet; variants are for me to compare.
+
+## 3. Search UI prototype, round 3 (Sun 15 Nov 2026)
+
+**Prompt (summarised):** variant D is the favourite. Keep filter terminology ("Add filter"), the left column and the centered modal. Remove the timeline component and the percentage bars, but keep removed/remaining counts. Use drag handles instead of arrows. Prefer E's less cluttered look. Explore OR styling and many selected values, add NOT, and add disabling as well as deleting, to compare results with and without a filter.
+
+**Delegated:** NOT and on/off support in the pipeline, with with/without counts per filter. Drag-and-drop ordering with `@dnd-kit` (stable 6.x rather than the 0.x `@dnd-kit/react`). A staged NOT switch in the picker. Three row styles G, H and I on one shared panel.
+
+**How it was checked:** `tsc`, ESLint and a 29-assertion Playwright run against the dev server, plus screenshots with twelve negated topics. The screenshots exposed a logic error in variant H's labels: NOT on each chip under an OR bracket reads as the wrong boolean. The agent fixed the labels.
+
+**Changed by hand:** nothing yet.
