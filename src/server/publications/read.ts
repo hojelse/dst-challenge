@@ -160,8 +160,15 @@ export async function readPublications(
   topicRows.sort(
     (a, b) => Number(b.isPrimary) - Number(a.isPrimary) || b.score - a.score,
   );
-  for (const { publicationId, score: _score, ...topic } of topicRows) {
-    records.get(publicationId)?.topics.push(topic);
+  for (const { publicationId, ...topic } of topicRows) {
+    records.get(publicationId)?.topics.push({
+      id: topic.id,
+      name: topic.name,
+      subfield: topic.subfield,
+      field: topic.field,
+      domain: topic.domain,
+      isPrimary: topic.isPrimary,
+    });
   }
 
   return [...records.values()];
