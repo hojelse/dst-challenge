@@ -1,11 +1,22 @@
-export default function Home() {
+import { Suspense } from "react";
+import { SearchSkeleton } from "@/components/search/search-skeleton";
+import { SearchView } from "@/components/search/search-view";
+import { parseSearchState } from "@/lib/search-params";
+import { searchPublications } from "@/server/search/service";
+
+type SearchParams = Promise<Record<string, string | string[] | undefined>>;
+
+/** The search page. The URL is the whole state, so any URL can be reloaded. */
+export default function Home({ searchParams }: { searchParams: SearchParams }) {
   return (
-    <main className="flex flex-1 flex-col items-center justify-center gap-3 p-8 text-center">
-      <h1 className="text-4xl font-semibold tracking-tight">TheGreenDiamond</h1>
-      <p className="max-w-md text-muted-foreground">
-        Danish climate change research from 2025, harvested from OpenAlex.
-        Search is coming soon.
-      </p>
-    </main>
+    <Suspense fallback={<SearchSkeleton />}>
+      <Search searchParams={searchParams} />
+    </Suspense>
   );
+}
+
+async function Search({ searchParams }: { searchParams: SearchParams }) {
+  const state = parseSearchState(await searchParams);
+  const result = await searchPublications(state);
+  return <SearchView state={state} result={result} />;
 }

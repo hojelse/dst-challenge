@@ -122,3 +122,51 @@ Rounds 1–5 of the prototype live on branch `prototype/search-ui`, which is kep
 **How it was checked:** the tests were confirmed failing only on the missing modules before implementation, and the test files are unchanged since their commit (`bf66997`). I reran `pnpm test` (49 passed), `pnpm test:integration` (16 passed), `pnpm lint` and `tsc --noEmit`, and checked the acceptance criteria with SQL against the real harvest: 1,000 Publications, 0 without a Danish Affiliation, 0 with exactly 100 Authorships, identical counts after a second `pnpm load`, no requests from a second `pnpm harvest`, and the key in neither `data/raw/` nor git.
 
 **Changed by hand:** ADR-0004's share of affected Publications, corrected from the 200-record sample to the full harvest (about a quarter, not a third).
+
+## 9. Slices 3–8 in one autonomous run (#5–#10) (Sun 15 Nov 2026)
+
+**Prompts:**
+
+> i have used mattpocock skills framework to create some software, But I have lost touch with the code base. I mostly made informed decisions about the front end and the UI in prototyping sessions, but the rest of the architecture and the other decisions I didn't feel very informed. Is there a way to go from the current state with the current issues? To some complete product, maybe by cutting scope, maybe by Having some agent run way more autonomously. […] How can I in very little time go go from what I've created so far to complete assignment?
+
+then, after reading the agent's plan: "go, keep variant J". Claude Code with Claude Fable 5.2.
+
+**Why the process changed:** two slices had taken most of a day. Each went through triage, a grilling round, a test-writer agent, an implementer agent and a PR. That is thorough, but it is sized for a larger project than a 2–3 hour challenge, and it asked me for decisions on backend details I could not judge well. With the deadline the next morning I asked for a way to finish.
+
+**What the agent proposed, and I accepted:**
+- Keep the six open issues as the specification, since the decisions in them were already made, but build them in one run on one branch with one PR.
+- Drop the per-issue triage gate and the separate test-writer and implementer agents. One agent wrote both code and tests this time, so these tests are a weaker independent check than those of slices 1 and 2.
+- Keep prototype variant J, the part I designed, as the search page.
+- Cut `wouldKeep` and the 400-validation matrix from #6, skip public deployment, and build only the three analyses the brief names for Task 4.
+- Let the agent make the remaining decisions and record each one, so I can review them afterwards instead of being asked in the moment.
+
+**Delegated:** merging PR #12; the Elasticsearch document, mapping and `pnpm index`; the search query builder and service; the three API routes; the search page (search bar, filter panel with drag-and-drop, value picker, results table, pagination); the detail page; the insights queries and charts; the Compose `seed` service; the README; ADR-0005 and ADR-0006; and `docs/WALKTHROUGH.md`, written so that I can get back in touch with the code before the interview.
+
+**Decisions the agent made without asking me** (each is mine to overturn):
+- The Author Filter picks Author IDs (ADR-0005), the decision #6 had flagged for me.
+- Malformed URL parameters fall back to defaults instead of returning 400 (ADR-0006).
+- Elasticsearch is called with `fetch`, not the official client.
+- Search requires every word to match, each in any field, as one `multi_match` per word.
+- Filter labels are read from Postgres by ID; counts come from Elasticsearch.
+- The picker shows both "Here" and "Overall" counts after all. The plan had cut this to one count, but listing every value needs the overall aggregation anyway.
+- The detail page's back link carries the search URL in a `from` parameter.
+- Citation counts are binned in widening bins (0, 1, 2, 3–5, … 101+).
+
+**How it was checked (by the agent, in this session):**
+- `pnpm test`: 72 unit tests pass (49 from slice 2, 23 new). `pnpm test:integration`: 34 pass (16 earlier, 18 new), against real Postgres and Elasticsearch with the five-work fixture. Insights queries are compared with counts computed independently from the fixture JSON.
+- `pnpm lint` and `pnpm tsc --noEmit` are clean; `pnpm build` succeeds.
+- A scripted browser pass in Chrome (Playwright, not committed) with 28 assertions: draft search and Escape, country-name search, adding, picking, discarding, negating, switching off, keyboard reordering and deleting Filters, sorting, column hiding, row expansion, pagination, reload, the zero-results state, no sideways scroll at 390 px on all three pages, and no console errors. It passed against both `pnpm dev` and the Docker build. The agent also looked at screenshots of each page.
+- A fresh clone in an empty directory, started with only `docker compose up --build`, harvested from OpenAlex without a key, loaded 1,000 Publications, built the index and served the app.
+- No `.env` file and no API key appear anywhere in `git log -p --all`.
+
+**Found along the way:**
+- The first Docker build failed: `/insights` reads no request data, so Next.js ran its SQL while building the static shell, with no database there. It now waits for a request (`connection()`).
+- One new integration test failed on first run because the test guessed a Topic ID that is not in the fixture. The test was wrong, not the code.
+- An unknown Publication ID shows the not-found page with HTTP 200, because the page streams. The JSON API returns 404. Recorded as a limitation.
+- The results table overflowed its column at 1400 px in the first screenshot and was fixed.
+
+**Not done:** public deployment; automated UI tests in the repository; dark mode.
+
+**My review:** _to be filled in by me after reading `docs/WALKTHROUGH.md` and clicking through the app._
+
+**Changed by hand:** _nothing yet._

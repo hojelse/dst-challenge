@@ -1,0 +1,3 @@
+# The Author Filter picks Authors by ID, not by name
+
+The prototype's Author Filter was "name contains some text". The production Filter picks Authors from a list, by OpenAlex ID, like every other Filter. Search already matches Author names, so a second free-text match would duplicate it; picking by ID lets the detail page and the Insights page link an Author straight to their Publications (`/?authors=A…`), and keeps one picker for all five Filters. The cost is a long list (about 7,600 Authors), so the picker renders the first 200 rows and relies on its name box to find the rest. Unidentified Authorships (ADR-0004) have no ID and cannot be picked; Search still finds them by their printed name.
