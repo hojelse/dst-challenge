@@ -34,3 +34,59 @@ Tooling: Claude Code (Claude Fable 5.1) in the terminal, with the `mattpocock-sk
 - Detail page from Postgres, list from Elasticsearch. Classic pagination. Insights page last.
 - Agent asked to pick the API key variable name: `OPENALEX_API_KEY`.
 - ADR-0001 (Postgres as system of record, Elasticsearch derived) and ADR-0002 (Topics over Concepts) written.
+
+**My decisions, round 3:** facet-count semantics accepted but must be explicit in the UI; detail page as proposed for now; edge states and API validation as proposed; accessibility baseline plus logical tab order; OpenAlex short IDs everywhere in the app; harvest, test and runtime setup as proposed; issues as the approval gate; separate test-writer and implementer agents. Main is protected by a ruleset, so every change goes through a PR. Facet controls, explicit OR/AND, page layout and result card go to a UI prototype before deciding.
+
+**Delegated next:** `/prototype` of the search page: three structurally different variants over 200 real OpenAlex records. The agent scaffolded the Next 16 + Tailwind 4 + shadcn app to host it, verified the Base UI and Next 16 APIs from `node_modules` instead of memory, and wrote the plan in `src/app/prototype/search/README.md`. Variants not yet built.
+
+## 2. Search UI prototype, round 2 (Sun 15 Nov 2026)
+
+**Prompt:** "i continued working on the prototypes in another session, variant a is getting close, but i want another round of variations. What i have found out so far is. Akin to PSQL EXPLAIN, An order of operations/filtering and count that narrows down from all to the selection per operation is nice. i would like that picking from a modal only applies as soon as i close the modal. the exact interactions and ui components is not settled. consider tanstack tables"
+
+**Delegated:** three new structurally different variants (plan rail, step inspector, EXPLAIN console) next to round-1 variant A, an ordered-pipeline module with per-step counts, a staged picker, and a TanStack results table.
+
+**How it was checked:** the agent read TanStack Table v9's type definitions from `node_modules` before using it, since v9 changed the API from v8. It ran `tsc` and ESLint. A Playwright script drove the real dev server and checked render, apply-on-close, discard, reorder, sort and mobile overflow. That run found a crash on any text query, caused by null `source` fields in the sample data, which the agent fixed. Screenshots exposed clipped badges and wrapped dates, also fixed.
+
+**Changed by hand:** nothing yet; variants are for me to compare.
+
+## 3. Search UI prototype, round 3 (Sun 15 Nov 2026)
+
+**Prompt (summarised):** variant D is the favourite. Keep filter terminology ("Add filter"), the left column and the centered modal. Remove the timeline component and the percentage bars, but keep removed/remaining counts. Use drag handles instead of arrows. Prefer E's less cluttered look. Explore OR styling and many selected values, add NOT, and add disabling as well as deleting, to compare results with and without a filter.
+
+**Delegated:** NOT and on/off support in the pipeline, with with/without counts per filter. Drag-and-drop ordering with `@dnd-kit` (stable 6.x rather than the 0.x `@dnd-kit/react`). A staged NOT switch in the picker. Three row styles G, H and I on one shared panel.
+
+**How it was checked:** `tsc`, ESLint and a 29-assertion Playwright run against the dev server, plus screenshots with twelve negated topics. The screenshots exposed a logic error in variant H's labels: NOT on each chip under an OR bracket reads as the wrong boolean. The agent fixed the labels.
+
+**Changed by hand:** nothing yet.
+
+## 4. Search UI prototype, round 4 (Sun 15 Nov 2026)
+
+**Prompt (summarised):** Add filter should list all options, not only those remaining after current filters. Keep from G: eye and delete side by side, the OR-joined values as the edit target, red when negated. But the operator must look clickable. From H: the "200 → 142" count, but not the OR bracket. From I: the eye icon. The modal must match the filter row in every variant.
+
+**Delegated:** one converged row in three operator styles (segmented, dropdown, toggle), with operator and value list pulled into shared components used by both row and modal, and the picker listing every value.
+
+**How it was checked:** `tsc`, ESLint, and a 23-assertion Playwright run, including that the modal's operator state, colour and "nor" joiner match the row. The modal looked see-through in a screenshot. A follow-up check showed this was the fade-in animation: computed opacity is 1 after it settles.
+
+**Changed by hand:** nothing yet.
+
+## 5. Search UI prototype, round 5 (Sun 15 Nov 2026)
+
+**Prompt:** "J is best, but i still want a search bar"
+
+**Delegated:** add a search bar to J. The agent made it the first, fixed line of the filter funnel instead of a separate mechanism, so the "in → out" counts stay honest. While doing so, it noticed the text matcher ignored country names, which the brief explicitly requires, and fixed that.
+
+**How it was checked:** `tsc`, ESLint and a 13-assertion Playwright run (staging, pinning under drag, clear, country match, mobile).
+
+**Changed by hand:** nothing yet.
+
+Rounds 1–5 of the prototype live on branch `prototype/search-ui`, which is kept for reference and never merged. Its `src/app/prototype/search/README.md` records each round.
+
+## 6. Spec issues (Sun 15 Nov 2026)
+
+**Prompt:** "J wins, write up the spec issues"
+
+**Delegated:** turn the decisions from the interview and the five prototype rounds into eight GitHub issues, one per vertical slice (#3–#10). Each has a goal, scope, acceptance criteria, the tests required or a manual QA checklist, and what is out of scope. They are labelled `needs-triage` and linked with GitHub's blocked-by dependencies. The agent also added the Search, Filter and Open access status terms to the glossary, and ADR-0003 for ordered Filters with per-Filter counts.
+
+**Flagged for my decision:** the Author Filter picks Author IDs (#6) instead of the prototype's "name contains".
+
+**Next, by me:** edit the issues and flip each to `ready-for-agent`. Merge PR #2 before slice 1 starts.
